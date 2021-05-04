@@ -28,57 +28,29 @@ function getWeather($location)
 
 function getTitles($getFrom)
 {
-    $titlesArray = pregTitles($getFrom);
-    $titlesArray = takeSpanOnly($titlesArray);
-    return $titlesArray;
-}
-
-function takeSpanOnly($titlesArray)
-{
+    // get title
+    preg_match_all(getRegex("regexTitle"), $getFrom, $titlesArray);
+    $titlesArray[0] = str_replace("class=\"b-forecast__table-description-title\"", "class=\"scraped__title\"", $titlesArray[0]);
+    
+    // get subtitle
+    for ($i = 0; $i < sizeof($titlesArray[0]); $i++) {
+        preg_match(getRegex("regexSubTitle"), $$titlesArray[0][$i], $subTitle);
+        $titlesArray[0][$i] = preg_replace(getRegex("regexSubTitle"), "<span>" . $subTitle[0] . "</span>", $titlesArray[0][$i]);
+        // correct title & subtitle HTML if needed
+        if (preg_match(getRegex("regexSpanInHeading"), $titlesArray[0][$i])) {
+            preg_match(getRegex("regexSpanElement"), $titlesArray[0][$i], $subTitle);
+            $titlesArray[0][$i] = preg_replace(getRegex("regexSpanElement"), " For The Week", $titlesArray[0][$i]);
+            preg_match(getRegex("regexMyTitles"), $toBeCorrected[0][$i], $title);
+            $titlesArray[0][$i] = preg_replace(getRegex("regexMyTitles"), $title[0] . $subTitle[0], $titlesArray[0][$i]);
+        }
+    } 
     for ($i = 0; $i <= sizeof($titlesArray); $i++) {
         preg_match(getRegex("regexSpanElement"), $titlesArray[$i], $subTitlesArray[$i]);
     }
     return $subTitlesArray;
 }
 
-function pregTitles($getFrom)
-{
-    preg_match_all(getRegex("regexTitle"), $getFrom, $titlesArray);
-    $titlesArray[0] = str_replace("class=\"b-forecast__table-description-title\"", "class=\"scraped__title\"", $titlesArray[0]);
-    $titlesArray = makeSpan($titlesArray);
-    $titlesArray = correctHTML($titlesArray);    
-    return $titlesArray;
-}
-
-function makeSpan($makeFrom)
-{
-    for ($i = 0; $i < sizeof($makeFrom[0]); $i++) {
-        preg_match(getRegex("regexSubTitle"), $makeFrom[0][$i], $subTitle);
-        $makeFrom[0][$i] = preg_replace(getRegex("regexSubTitle"), "<span>" . $subTitle[0] . "</span>", $makeFrom[0][$i]);
-    }
-    return $makeFrom;
-}
-
-function correctHTML($toBeCorrected)
-{
-    for ($i = 0; $i < sizeof($toBeCorrected[0]); $i++) {
-        if (preg_match(getRegex("regexSpanInHeading"), $toBeCorrected[0][$i])) {
-            preg_match(getRegex("regexSpanElement"), $toBeCorrected[0][$i], $subTitle);
-            $toBeCorrected[0][$i] = preg_replace(getRegex("regexSpanElement"), " For The Week", $toBeCorrected[0][$i]);
-            preg_match(getRegex("regexMyTitles"), $toBeCorrected[0][$i], $title);
-            $toBeCorrected[0][$i] = preg_replace(getRegex("regexMyTitles"), $title[0] . $subTitle[0], $toBeCorrected[0][$i]);
-        }
-    }
-    return $toBeCorrected[0];
-}    
-
 function getContent($getFrom)
-{
-    $contentArray = pregContent($getFrom);
-    return $contentArray;
-}
-
-function pregContent($getFrom)
 {
     preg_match_all(getRegex("regexContent"), $getFrom, $contentArray);
     $contentArray[0] = str_replace("class=\"b-forecast__table-description-content\"",
@@ -91,46 +63,21 @@ function makeHTML($titles, $content)
 {
     // create HTML structure to work with jQueryUI's tabs widget
     // api docs: https://api.jqueryui.com/tabs/
-    $tabTitles = makeTabTitles($titles);
-    $tabContent = makeTabContent($content);
-    $string = makeContainer($tabTitles, $tabContent);
-    return $string;
-}
-
-function makeTabTitles($titles)
-{
-    $string = "<ul>";
-
+    
+    $outputHTML = "<div id=\"tabs\">";
+    $outputHTML .= "<ul>";
+    
+    // append tabHTML
     for ($i = 0; $i < sizeof($titles) - 1; $i++) {
-        $scrapedTitles[$i] = "<li><a href=\"#tab-{$i}\">" . $titles[$i][0] . "</a></li>";
-        $string .= $scrapedTitles[$i];
+        $outputHTML .= "<li><a href=\"#tab-{$i}\">" . $titles[$i][0] . "</a></li>";
     }
-    $string .= "</ul>";
-    return $string;
-
-}
-
-function makeTabContent($content)
-{
-    $string = "";
-
+    $outputHTML .= "</ul>";
+    
+    // append contentHTML
     for ($i = 0; $i < sizeof($content); $i++) {
-        $string .= "<div id=\"tab-{$i}\">" . $content[$i] . "</div>";
+        $outputHTML .= "<div id=\"tab-{$i}\">" . $content[$i] . "</div>";
     }
-
-    return $string;
-}
-
-function makeContainer($tabTitles, $tabContent)
-{
-    $string = "<div id=\"tabs\">";
-    $string .= $tabTitles;
-    $string .= $tabContent;
-    for ($i = 0; $i < sizeof($tabTitles); $i++) {
-        if ($i == sizeof($tabTitles) - 1) {
-            $string .= "</div>";
-        }
-    }
-    return $string;
+    $outputHTML .= "</div>";
+    return $outputHTML;
 }
 ?>
